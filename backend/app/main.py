@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import engine, Base, SessionLocal
 from app.models import *  # noqa: register all models
-from app.api.v1 import materials, machines, vendors, process_templates, overhead_profiles, parts, cost_sheets, excel, dashboard, integrations
+from app.api.v1 import materials, machines, vendors, process_templates, overhead_profiles, parts, cost_sheets, excel, dashboard, integrations, commodity_prices
 
 settings = get_settings()
 
@@ -59,6 +59,9 @@ app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboar
 
 # Integrations
 app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["Integrations"])
+
+# Commodity prices (live market data)
+app.include_router(commodity_prices.router, prefix="/api/v1/commodity-prices", tags=["Commodity Prices"])
 
 
 @app.get("/api/health")

@@ -12,7 +12,8 @@
       "mcp__playwright__browser_snapshot",
       "Bash(pip install:*)",
       "Bash(python:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

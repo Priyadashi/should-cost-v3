@@ -4,6 +4,7 @@ import Modal from '../components/shared/Modal'
 import FormField, { Input, Select } from '../components/shared/FormField'
 import { useToast } from '../components/shared/Toast'
 import { useMaterials, useCreateMaterial, useUpdateMaterial, useDeleteMaterial } from '../hooks/useApi'
+import MarketPricePicker from '../components/MarketPricePicker'
 
 const emptyForm = { grade: '', material_type: 'Steel', rate_per_kg: '', currency: 'INR', scrap_recovery_pct: '0.35', region: '', description: '' }
 
@@ -94,8 +95,14 @@ export default function MaterialsList() {
               <option>Other</option>
             </Select>
           </FormField>
-          <FormField label="Rate per kg">
-            <Input type="number" step="0.01" value={form.rate_per_kg} onChange={(e) => setForm({ ...form, rate_per_kg: e.target.value })} placeholder="0.00" />
+          <FormField label="Rate per kg (INR/kg)">
+            <div className="flex items-center gap-1">
+              <Input type="number" step="0.01" value={form.rate_per_kg} onChange={(e) => setForm({ ...form, rate_per_kg: e.target.value })} placeholder="0.00" />
+              <MarketPricePicker
+                materialType={form.material_type}
+                onSelect={(price) => setForm({ ...form, rate_per_kg: String(price), currency: 'INR' })}
+              />
+            </div>
           </FormField>
           <FormField label="Currency">
             <Select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
