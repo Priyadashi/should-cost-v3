@@ -1,0 +1,51 @@
+{
+  "skill_name": "tail-spend-cutter",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I've got our company's AP data exported from SAP — it's in eval1_rich_spend.csv. We've got about 50 vendors and my CFO is asking me to find ways to cut procurement costs. Can you analyze this and tell me which suppliers we should consolidate or eliminate? I need a report I can present to leadership.",
+      "expected_output": "Full pipeline execution: data cleansing with fuzzy dedup, Pareto analysis showing head/core/tail breakdown, 20-factor scoring, consolidation clusters, and a 6-tab Excel report. Should identify ~5 fuzzy duplicate suppliers and produce savings estimates.",
+      "files": ["evals/files/eval1_rich_spend.csv"],
+      "expectations": [
+        "The analyze_spend.py script runs successfully and produces cleaned_spend.csv",
+        "Fuzzy matching identifies and merges at least 3 duplicate supplier names",
+        "Pareto analysis classifies suppliers into Head, Core, and Tail segments",
+        "The score_suppliers.py script produces supplier_scores.csv with CPS, SPS, and RS columns",
+        "Consolidation clusters are generated grouping tail suppliers by category",
+        "Savings estimates are produced with dollar amounts",
+        "A 6-tab Excel report is generated (Executive Summary, Pareto Analysis, Supplier Scores, Consolidation, Action Plan, Savings Waterfall)",
+        "The Excel report file can be opened and has data in all 6 tabs",
+        "The user is presented with a summary of key findings and recommended next steps"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "hey, I pulled some payment data from our quickbooks but it's pretty basic — just has the payee name, amount paid, and a memo field. file is eval2_minimal_spend.csv. Can you still do a supplier analysis on this? we're a small company, about 20 vendors total, and I know we're overpaying on a bunch of stuff.",
+      "expected_output": "Pipeline handles minimal 3-column data gracefully. Auto-detects non-standard column names (Payee, Total Paid, Memo). Produces analysis despite missing category data. Report still generated with available information.",
+      "files": ["evals/files/eval2_minimal_spend.csv"],
+      "expectations": [
+        "Column auto-detection correctly maps 'Payee' to supplier and 'Total Paid' to amount",
+        "The pipeline runs to completion despite missing category and date columns",
+        "Pareto analysis is performed and segments are assigned",
+        "Supplier scoring completes with neutral scores for unavailable factors",
+        "An Excel report is generated with all 6 tabs",
+        "The user is informed about data limitations and what additional columns would improve the analysis"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need help cleaning up our vendor list. The data is a mess — exported from a legacy system with inconsistent naming, some missing fields, and there might be credits mixed in. File is eval3_messy_spend.csv. Just want to know how bad our tail spend situation is and what we can do about it.",
+      "expected_output": "Pipeline handles dirty data: strips whitespace, merges case variations (Acme Corp/acme corp/ACME CORP.), drops rows with missing suppliers or amounts, filters out negative amounts and zeros. Data quality report flags all issues found.",
+      "files": ["evals/files/eval3_messy_spend.csv"],
+      "expectations": [
+        "Rows with empty supplier names are dropped and reported",
+        "Rows with negative or zero amounts are filtered out and reported",
+        "Rows with missing amounts are dropped and reported",
+        "Fuzzy matching merges case/punctuation variations of the same supplier (e.g., 'Acme Corp' variants)",
+        "A data quality report is generated listing all issues found",
+        "The pipeline completes and produces an Excel report despite the messy input",
+        "The user is shown the data quality issues and asked to confirm before proceeding"
+      ]
+    }
+  ]
+}
