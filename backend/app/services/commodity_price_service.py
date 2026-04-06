@@ -39,26 +39,27 @@ _TICKER_DEFS: dict[str, dict] = {
     "SILVERM.MCX":   {"name": "Silver",        "exchange": "MCX India", "raw_unit": "INR/kg",       "factor": 1.0},
     # ── COMEX / LME proxy (USD) ───────────────────────────────────────────
     "HG=F":          {"name": "Copper",        "exchange": "LME (COMEX proxy)", "raw_unit": "USD/lb",      "factor": "USD_LB"},
-    "ALI=F":         {"name": "Aluminium",     "exchange": "LME (COMEX proxy)", "raw_unit": "USD/lb",      "factor": "USD_LB"},
+    "ALI=F":         {"name": "Aluminium",     "exchange": "LME (COMEX proxy)", "raw_unit": "USD/MT",      "factor": "USD_MT"},
     "GC=F":          {"name": "Gold",          "exchange": "COMEX",             "raw_unit": "USD/troy oz", "factor": "USD_TROY"},
     "SI=F":          {"name": "Silver",        "exchange": "COMEX",             "raw_unit": "USD/troy oz", "factor": "USD_TROY"},
+    "HRC=F":         {"name": "Steel (HRC)",   "exchange": "NYMEX",             "raw_unit": "USD/short ton", "factor": "USD_SHORT_TON"},
     # ── Exchange rate ─────────────────────────────────────────────────────
     "USDINR=X":      {"name": "USD/INR",       "exchange": "Forex",             "raw_unit": "INR/USD",     "factor": 1.0},
 }
 
 # Material type → ordered list of tickers to try (MCX first, then international)
 MATERIAL_TO_TICKERS: dict[str, list[str]] = {
-    "Steel":           ["STEELLONG.MCX"],
+    "Steel":           ["HRC=F"],
     "Aluminum":        ["ALUMINIUM.MCX", "ALI=F"],
     "Copper":          ["COPPER.MCX", "HG=F"],
-    "Cast Iron":       ["STEELLONG.MCX"],
+    "Cast Iron":       ["HRC=F"],
     "Stainless Steel": ["NICKEL.MCX"],
     "Nickel":          ["NICKEL.MCX"],
     "Zinc":            ["ZINC.MCX"],
     "Lead":            ["LEAD.MCX"],
     "Gold":            ["GOLD.MCX", "GC=F"],
     "Silver":          ["SILVERM.MCX", "SI=F"],
-    "Other":           ["ALUMINIUM.MCX", "COPPER.MCX", "STEELLONG.MCX"],
+    "Other":           ["ALUMINIUM.MCX", "COPPER.MCX", "HRC=F"],
 }
 
 
@@ -107,14 +108,17 @@ async def get_prices_for_material(material_type: str) -> list[dict]:
     """
     tickers = MATERIAL_TO_TICKERS.get(material_type, [])
     needs_fx = any(
-        _TICKER_DEFS.get(t, {}).get("factor") in ("USD_LB", "USD_TROY")
+        _TICKER_DEFS.get(t, {}).get("factor") in ("USD_LB", "USD_TROY", "USD_SHORT_TON", "USD_MT")
         for t in tickers
     )
+    print(f"DEBUG {material_type}: needs_fx = {needs_fx}")
 
     async with httpx.AsyncClient() as client:
         usdinr: Optional[float] = None
         if needs_fx:
             usdinr = await _yahoo_price("USDINR=X", client)
+            if usdinr is None:
+                usdinr = 83.50 # fallback if Yahoo Finance fails
 
         results = []
         for ticker in tickers:
@@ -137,6 +141,16 @@ async def get_prices_for_material(material_type: str) -> list[dict]:
                     continue
                 price_inr = (raw / 0.0311035) * usdinr  # USD/troy oz → USD/kg → INR/kg
                 note = f"Converted: {raw:.2f} USD/troy oz ÷ 0.031103 × {usdinr:.2f} (USD→INR)"
+            elif factor == "USD_SHORT_TON":
+                if usdinr is None:
+                    continue
+                price_inr = (raw / 907.18474) * usdinr # USD/short ton → USD/kg → INR/kg
+                note = f"Converted: {raw:.2f} USD/short ton ÷ 907.18 × {usdinr:.2f} (USD→INR)"
+            elif factor == "USD_MT":
+                if usdinr is None:
+                    continue
+                price_inr = (raw / 1000.0) * usdinr # USD/MT → USD/kg → INR/kg
+                note = f"Converted: {raw:.2f} USD/MT ÷ 1000 × {usdinr:.2f} (USD→INR)"
             else:
                 price_inr = raw * float(factor)
                 if float(factor) != 1.0:

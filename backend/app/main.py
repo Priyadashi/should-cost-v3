@@ -66,4 +66,4 @@ app.include_router(commodity_prices.router, prefix="/api/v1/commodity-prices", t
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "ping": "pong"}
