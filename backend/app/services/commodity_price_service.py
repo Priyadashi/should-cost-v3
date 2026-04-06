@@ -111,8 +111,6 @@ async def get_prices_for_material(material_type: str) -> list[dict]:
         _TICKER_DEFS.get(t, {}).get("factor") in ("USD_LB", "USD_TROY", "USD_SHORT_TON", "USD_MT")
         for t in tickers
     )
-    print(f"DEBUG {material_type}: needs_fx = {needs_fx}")
-
     async with httpx.AsyncClient() as client:
         usdinr: Optional[float] = None
         if needs_fx:
