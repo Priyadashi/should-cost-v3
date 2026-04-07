@@ -13,6 +13,9 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     # Create tables on startup
     Base.metadata.create_all(bind=engine)
+    # Run additive migrations
+    from app.migrations import run_migrations
+    run_migrations(engine)
     # Seed data
     db = SessionLocal()
     try:
