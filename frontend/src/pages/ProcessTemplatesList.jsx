@@ -3,7 +3,7 @@ import DataTable from '../components/shared/DataTable'
 import Modal from '../components/shared/Modal'
 import FormField, { Input, Select } from '../components/shared/FormField'
 import { useToast } from '../components/shared/Toast'
-import { useProcessTemplates, useCreateProcessTemplate, useUpdateProcessTemplate, useDeleteProcessTemplate } from '../hooks/useApi'
+import { useMachines, useProcessTemplates, useCreateProcessTemplate, useUpdateProcessTemplate, useDeleteProcessTemplate } from '../hooks/useApi'
 
 const COMMODITY_OPTIONS = ['Forging', 'Casting', 'Fabrication']
 
@@ -12,15 +12,20 @@ const emptyForm = {
   commodity_type: 'Forging',
   category: '',
   sequence_order: '',
+  default_machine_id: '',
   default_cycle_time_min: '',
   default_setup_time_min: '',
+  default_batch_size: '100',
+  default_operators: '1',
   default_labor_rate_per_hr: '',
+  default_tooling_cost_per_unit: '0',
   description: '',
 }
 
 export default function ProcessTemplatesList() {
   const [commodityFilter, setCommodityFilter] = useState(undefined)
   const { data: templates = [], isLoading } = useProcessTemplates(commodityFilter)
+  const { data: machines = [] } = useMachines()
   const createMut = useCreateProcessTemplate()
   const updateMut = useUpdateProcessTemplate()
   const deleteMut = useDeleteProcessTemplate()
@@ -33,11 +38,22 @@ export default function ProcessTemplatesList() {
     { header: 'Commodity', accessor: 'commodity_type', render: (r) => (
       <span className="inline-block rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">{r.commodity_type}</span>
     )},
-    { header: 'Category', accessor: 'category', render: (r) => r.category || '\u2014' },
-    { header: 'Seq.', accessor: 'sequence_order', render: (r) => <span className="font-mono">{r.sequence_order ?? '\u2014'}</span> },
-    { header: 'Cycle Time', accessor: 'default_cycle_time_min', render: (r) => r.default_cycle_time_min != null ? <span className="font-mono">{r.default_cycle_time_min} min</span> : '\u2014' },
-    { header: 'Setup Time', accessor: 'default_setup_time_min', render: (r) => r.default_setup_time_min != null ? <span className="font-mono">{r.default_setup_time_min} min</span> : '\u2014' },
-    { header: 'Labor Rate/hr', accessor: 'default_labor_rate_per_hr', render: (r) => r.default_labor_rate_per_hr != null ? <span className="font-mono text-brand-700 font-semibold">{'\u20B9'}{r.default_labor_rate_per_hr}</span> : '\u2014' },
+    { header: 'Category', accessor: 'category', render: (r) => r.category || '—' },
+    { header: 'Seq.', accessor: 'sequence_order', render: (r) => <span className="font-mono">{r.sequence_order ?? '—'}</span> },
+    {
+      header: 'Machine',
+      accessor: 'default_machine_id',
+      render: (r) => {
+        const m = machines.find(m => m.id === r.default_machine_id)
+        return m ? <span className="text-xs text-surface-600">{m.name}</span> : '—'
+      },
+    },
+    { header: 'Cycle (min)', accessor: 'default_cycle_time_min', render: (r) => r.default_cycle_time_min != null ? <span className="font-mono">{r.default_cycle_time_min}</span> : '—' },
+    { header: 'Setup (min)', accessor: 'default_setup_time_min', render: (r) => r.default_setup_time_min != null ? <span className="font-mono">{r.default_setup_time_min}</span> : '—' },
+    { header: 'Batch', accessor: 'default_batch_size', render: (r) => <span className="font-mono">{r.default_batch_size ?? 100}</span> },
+    { header: 'Operators', accessor: 'default_operators', render: (r) => <span className="font-mono">{r.default_operators ?? 1}</span> },
+    { header: 'Labor ₹/hr', accessor: 'default_labor_rate_per_hr', render: (r) => r.default_labor_rate_per_hr != null ? <span className="font-mono text-brand-700 font-semibold">₹{r.default_labor_rate_per_hr}</span> : '—' },
+    { header: 'Tooling ₹/pc', accessor: 'default_tooling_cost_per_unit', render: (r) => r.default_tooling_cost_per_unit != null ? <span className="font-mono">₹{r.default_tooling_cost_per_unit}</span> : '—' },
   ]
 
   const openAdd = () => { setForm(emptyForm); setModal('add') }
@@ -47,9 +63,13 @@ export default function ProcessTemplatesList() {
       commodity_type: row.commodity_type || 'Forging',
       category: row.category || '',
       sequence_order: row.sequence_order ?? '',
+      default_machine_id: row.default_machine_id ?? '',
       default_cycle_time_min: row.default_cycle_time_min ?? '',
       default_setup_time_min: row.default_setup_time_min ?? '',
+      default_batch_size: row.default_batch_size ?? 100,
+      default_operators: row.default_operators ?? 1,
       default_labor_rate_per_hr: row.default_labor_rate_per_hr ?? '',
+      default_tooling_cost_per_unit: row.default_tooling_cost_per_unit ?? 0,
       description: row.description || '',
     })
     setModal(row)
@@ -60,10 +80,14 @@ export default function ProcessTemplatesList() {
     try {
       const payload = {
         ...form,
-        sequence_order: form.sequence_order !== '' ? parseInt(form.sequence_order) : null,
+        sequence_order: form.sequence_order !== '' ? parseInt(form.sequence_order) : 0,
+        default_machine_id: form.default_machine_id !== '' ? parseInt(form.default_machine_id) : null,
         default_cycle_time_min: form.default_cycle_time_min !== '' ? parseFloat(form.default_cycle_time_min) : null,
         default_setup_time_min: form.default_setup_time_min !== '' ? parseFloat(form.default_setup_time_min) : null,
+        default_batch_size: form.default_batch_size !== '' ? parseInt(form.default_batch_size) : 100,
+        default_operators: form.default_operators !== '' ? parseInt(form.default_operators) : 1,
         default_labor_rate_per_hr: form.default_labor_rate_per_hr !== '' ? parseFloat(form.default_labor_rate_per_hr) : null,
+        default_tooling_cost_per_unit: form.default_tooling_cost_per_unit !== '' ? parseFloat(form.default_tooling_cost_per_unit) : 0,
       }
       if (modal === 'add') {
         await createMut.mutateAsync(payload)
@@ -89,6 +113,8 @@ export default function ProcessTemplatesList() {
     }
   }
 
+  const f = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+
   return (
     <div>
       <div className="mb-4 flex items-center gap-3">
@@ -113,34 +139,49 @@ export default function ProcessTemplatesList() {
         emptyMessage="No process templates yet"
         searchable
       />
-      <Modal open={!!modal} onClose={close} title={modal === 'add' ? 'Add Process Template' : 'Edit Process Template'} size="lg">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField label="Name">
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Rough Turning" />
+      <Modal open={!!modal} onClose={close} title={modal === 'add' ? 'Add Process Template' : 'Edit Process Template'} size="xl">
+        <div className="grid grid-cols-3 gap-4">
+          <FormField label="Operation Name" className="col-span-2">
+            <Input value={form.name} onChange={f('name')} placeholder="e.g. Rough Turning" />
           </FormField>
           <FormField label="Commodity Type">
-            <Select value={form.commodity_type} onChange={(e) => setForm({ ...form, commodity_type: e.target.value })}>
+            <Select value={form.commodity_type} onChange={f('commodity_type')}>
               {COMMODITY_OPTIONS.map((c) => <option key={c}>{c}</option>)}
             </Select>
           </FormField>
           <FormField label="Category">
-            <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="e.g. Machining" />
+            <Input value={form.category} onChange={f('category')} placeholder="e.g. Machining" />
           </FormField>
           <FormField label="Sequence Order">
-            <Input type="number" step="1" value={form.sequence_order} onChange={(e) => setForm({ ...form, sequence_order: e.target.value })} placeholder="e.g. 10" />
+            <Input type="number" step="1" value={form.sequence_order} onChange={f('sequence_order')} placeholder="e.g. 10" />
           </FormField>
-          <FormField label="Default Cycle Time (min)">
-            <Input type="number" step="0.1" value={form.default_cycle_time_min} onChange={(e) => setForm({ ...form, default_cycle_time_min: e.target.value })} placeholder="0.0" />
+          <FormField label="Default Machine">
+            <Select value={form.default_machine_id} onChange={f('default_machine_id')}>
+              <option value="">None</option>
+              {machines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </Select>
           </FormField>
-          <FormField label="Default Setup Time (min)">
-            <Input type="number" step="0.1" value={form.default_setup_time_min} onChange={(e) => setForm({ ...form, default_setup_time_min: e.target.value })} placeholder="0.0" />
+          <FormField label="Cycle Time (min)">
+            <Input type="number" step="0.1" value={form.default_cycle_time_min} onChange={f('default_cycle_time_min')} placeholder="0.0" />
           </FormField>
-          <FormField label="Default Labor Rate/hr">
-            <Input type="number" step="0.01" value={form.default_labor_rate_per_hr} onChange={(e) => setForm({ ...form, default_labor_rate_per_hr: e.target.value })} placeholder="0.00" />
+          <FormField label="Setup Time (min)">
+            <Input type="number" step="0.1" value={form.default_setup_time_min} onChange={f('default_setup_time_min')} placeholder="0.0" />
+          </FormField>
+          <FormField label="Batch Size">
+            <Input type="number" value={form.default_batch_size} onChange={f('default_batch_size')} placeholder="100" />
+          </FormField>
+          <FormField label="Operators">
+            <Input type="number" value={form.default_operators} onChange={f('default_operators')} placeholder="1" />
+          </FormField>
+          <FormField label="Labor Rate (₹/hr)">
+            <Input type="number" step="0.01" value={form.default_labor_rate_per_hr} onChange={f('default_labor_rate_per_hr')} placeholder="0.00" />
+          </FormField>
+          <FormField label="Tooling Cost (₹/pc)">
+            <Input type="number" step="0.01" value={form.default_tooling_cost_per_unit} onChange={f('default_tooling_cost_per_unit')} placeholder="0.00" />
           </FormField>
         </div>
         <FormField label="Description" className="mt-4">
-          <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional description" />
+          <Input value={form.description} onChange={f('description')} placeholder="Optional description" />
         </FormField>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={close} className="rounded-lg border border-surface-200 px-4 py-2 text-sm font-medium text-surface-600 hover:bg-surface-50">Cancel</button>

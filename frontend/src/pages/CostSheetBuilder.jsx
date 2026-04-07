@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { usePart, useParts, useMaterials, useMachines, useOverheadProfiles, useCreatePart, useCreateCostSheet, useCalculateCostSheet, useReplaceBom, useReplaceRouting } from '../hooks/useApi'
+import { usePart, useParts, useMaterials, useMachines, useOverheadProfiles, useProcessTemplates, useCreatePart, useCreateCostSheet, useCalculateCostSheet, useReplaceBom, useReplaceRouting } from '../hooks/useApi'
 import FormField, { Input, Select } from '../components/shared/FormField'
+import Modal from '../components/shared/Modal'
 import { CurrencyDisplay } from '../components/shared/StatusBadge'
-import { Plus, Trash2, GripVertical, Calculator, Save, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, GripVertical, Calculator, Save, ArrowLeft, LayoutTemplate, Check } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS = [
@@ -39,6 +40,7 @@ export default function CostSheetBuilder() {
   const [selectedPartId, setSelectedPartId] = useState('')
   const [quotedPrice, setQuotedPrice] = useState('')
   const [scenarioName, setScenarioName] = useState('Base Scenario')
+  const [supplierName, setSupplierName] = useState('')
   const [selectedProfileId, setSelectedProfileId] = useState('')
 
   // BOM lines
@@ -54,6 +56,11 @@ export default function CostSheetBuilder() {
 
   const [saving, setSaving] = useState(false)
   const [calculating, setCalculating] = useState(false)
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState(new Set())
+
+  // Process templates filtered by current commodity
+  const { data: processTemplates = [] } = useProcessTemplates(partForm.commodity_type || undefined)
 
   // When a profile is selected, load its values
   const selectedProfile = useMemo(() => {
@@ -136,6 +143,27 @@ export default function CostSheetBuilder() {
     routingSteps.filter((_, j) => j !== i).map((s, j) => ({ ...s, sequence: j + 1 }))
   )
 
+  // Load selected templates into routing steps
+  const applyTemplates = () => {
+    const toAdd = processTemplates
+      .filter(t => selectedTemplateIds.has(t.id))
+      .sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0))
+      .map((t, i) => ({
+        sequence: routingSteps.length + i + 1,
+        operation_name: t.name,
+        machine_id: t.default_machine_id ? String(t.default_machine_id) : '',
+        cycle_time_min: t.default_cycle_time_min ?? '',
+        setup_time_min: t.default_setup_time_min ?? '0',
+        batch_size: t.default_batch_size ?? '100',
+        operators: t.default_operators ?? '1',
+        labor_rate_per_hr: t.default_labor_rate_per_hr ?? '350',
+        tooling_cost_per_unit: t.default_tooling_cost_per_unit ?? '0',
+      }))
+    setRoutingSteps([...routingSteps, ...toAdd])
+    setSelectedTemplateIds(new Set())
+    setShowTemplatePicker(false)
+  }
+
   // Save & Calculate
   const handleCalculate = async () => {
     try {
@@ -186,6 +214,7 @@ export default function CostSheetBuilder() {
         part_id: parseInt(partId),
         scenario_name: scenarioName,
         quoted_price: parseFloat(quotedPrice) || 0,
+        supplier_name: supplierName || null,
         overhead_profile_id: selectedProfileId ? parseInt(selectedProfileId) : null,
       })
 
@@ -230,8 +259,8 @@ export default function CostSheetBuilder() {
 
       {/* Part Header */}
       <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-subtle">
-        <div className="grid grid-cols-5 gap-4">
-          <FormField label="Part Name">
+        <div className="grid grid-cols-6 gap-4">
+          <FormField label="Part Name" className="col-span-1">
             <Input value={partForm.name} onChange={e => setPartForm({...partForm, name: e.target.value})} placeholder="e.g. Connecting Rod" />
           </FormField>
           <FormField label="Part Number">
@@ -247,6 +276,9 @@ export default function CostSheetBuilder() {
           </FormField>
           <FormField label="Quoted Price (₹/unit)">
             <Input type="number" value={quotedPrice} onChange={e => setQuotedPrice(e.target.value)} placeholder="0.00" />
+          </FormField>
+          <FormField label="Supplier Name">
+            <Input value={supplierName} onChange={e => setSupplierName(e.target.value)} placeholder="e.g. Acme Forgings" />
           </FormField>
         </div>
       </div>
@@ -342,12 +374,32 @@ export default function CostSheetBuilder() {
           {/* Routing Tab */}
           {activeTab === 'routing' && (
             <div className="space-y-3">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-surface-400">
+                  {routingSteps.length > 0 ? `${routingSteps.length} step${routingSteps.length > 1 ? 's' : ''}` : 'No steps yet'}
+                </span>
+                <button
+                  onClick={() => { setSelectedTemplateIds(new Set()); setShowTemplatePicker(true) }}
+                  className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-100"
+                >
+                  <LayoutTemplate size={13} /> Load from Template
+                </button>
+              </div>
               {routingSteps.length === 0 ? (
                 <div className="rounded-xl border border-surface-200 bg-white p-8 text-center">
                   <p className="text-sm text-surface-400 mb-3">No process steps yet</p>
-                  <button onClick={addRoutingStep} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-600">
-                    <Plus size={14} /> Add Process Step
-                  </button>
+                  <div className="flex items-center justify-center gap-3">
+                    <button onClick={addRoutingStep} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-600">
+                      <Plus size={14} /> Add Step Manually
+                    </button>
+                    <button
+                      onClick={() => { setSelectedTemplateIds(new Set()); setShowTemplatePicker(true) }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 bg-brand-50 px-4 py-2 text-xs font-semibold text-brand-600 hover:bg-brand-100"
+                    >
+                      <LayoutTemplate size={14} /> Load from Template
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -424,6 +476,79 @@ export default function CostSheetBuilder() {
               )}
             </div>
           )}
+
+          {/* Template Picker Modal */}
+          <Modal
+            open={showTemplatePicker}
+            onClose={() => setShowTemplatePicker(false)}
+            title={`Load Process Templates — ${partForm.commodity_type || 'All'}`}
+            size="xl"
+          >
+            {processTemplates.length === 0 ? (
+              <p className="py-6 text-center text-sm text-surface-400">No templates found for {partForm.commodity_type}. Create them under Master Data → Process Templates.</p>
+            ) : (
+              <>
+                <p className="text-xs text-surface-400 mb-3">Select one or more templates to append as routing steps. Values can be edited after loading.</p>
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  {processTemplates
+                    .sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0))
+                    .map(t => {
+                      const machine = machines.find(m => m.id === t.default_machine_id)
+                      const isSelected = selectedTemplateIds.has(t.id)
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => {
+                            const next = new Set(selectedTemplateIds)
+                            isSelected ? next.delete(t.id) : next.add(t.id)
+                            setSelectedTemplateIds(next)
+                          }}
+                          className={clsx(
+                            'w-full rounded-lg border p-3 text-left transition-colors',
+                            isSelected
+                              ? 'border-brand-300 bg-brand-50 ring-1 ring-brand-200'
+                              : 'border-surface-200 bg-white hover:border-brand-200 hover:bg-surface-50'
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                {isSelected && <Check size={12} className="text-brand-600 flex-shrink-0" />}
+                                <span className="text-sm font-semibold text-surface-700">{t.name}</span>
+                                {t.category && <span className="text-[10px] rounded-full bg-blue-50 px-2 py-0.5 text-blue-600 font-semibold">{t.category}</span>}
+                              </div>
+                              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-surface-400">
+                                {machine && <span>Machine: <span className="text-surface-600">{machine.name}</span></span>}
+                                {t.default_cycle_time_min && <span>Cycle: <span className="font-mono text-surface-600">{t.default_cycle_time_min} min</span></span>}
+                                {t.default_setup_time_min && <span>Setup: <span className="font-mono text-surface-600">{t.default_setup_time_min} min</span></span>}
+                                <span>Batch: <span className="font-mono text-surface-600">{t.default_batch_size ?? 100}</span></span>
+                                <span>Ops: <span className="font-mono text-surface-600">{t.default_operators ?? 1}</span></span>
+                                {t.default_labor_rate_per_hr && <span>Labor: <span className="font-mono text-surface-600">₹{t.default_labor_rate_per_hr}/hr</span></span>}
+                                {t.default_tooling_cost_per_unit > 0 && <span>Tooling: <span className="font-mono text-surface-600">₹{t.default_tooling_cost_per_unit}/pc</span></span>}
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-mono text-surface-300">Seq. {t.sequence_order}</span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="text-xs text-surface-400">{selectedTemplateIds.size} selected</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowTemplatePicker(false)} className="rounded-lg border border-surface-200 px-4 py-2 text-sm font-medium text-surface-600 hover:bg-surface-50">Cancel</button>
+                    <button
+                      onClick={applyTemplates}
+                      disabled={selectedTemplateIds.size === 0}
+                      className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-40"
+                    >
+                      Add {selectedTemplateIds.size > 0 ? selectedTemplateIds.size : ''} Step{selectedTemplateIds.size !== 1 ? 's' : ''}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </Modal>
 
           {/* Overhead Tab */}
           {activeTab === 'overhead' && (

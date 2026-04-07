@@ -33,7 +33,8 @@ def list_cost_sheets(
         r = CostSheetRead(
             id=s.id, part_id=s.part_id, scenario_name=s.scenario_name,
             scenario_group=s.scenario_group, status=s.status,
-            quoted_price=s.quoted_price, overhead_profile_id=s.overhead_profile_id,
+            quoted_price=s.quoted_price, supplier_name=s.supplier_name,
+            overhead_profile_id=s.overhead_profile_id,
             result_summary=s.result_summary, calculated_at=s.calculated_at,
             created_at=s.created_at, updated_at=s.updated_at,
             part_name=part.name if part else None,
@@ -52,7 +53,8 @@ def get_cost_sheet(id: int, db: Session = Depends(get_db)):
     return CostSheetDetail(
         id=s.id, part_id=s.part_id, scenario_name=s.scenario_name,
         scenario_group=s.scenario_group, status=s.status,
-        quoted_price=s.quoted_price, overhead_profile_id=s.overhead_profile_id,
+        quoted_price=s.quoted_price, supplier_name=s.supplier_name,
+        overhead_profile_id=s.overhead_profile_id,
         result_summary=s.result_summary, calculated_at=s.calculated_at,
         created_at=s.created_at, updated_at=s.updated_at,
         part_name=part.name if part else None, part_no=part.part_no if part else None,
@@ -74,7 +76,8 @@ def create_cost_sheet(data: CostSheetCreate, db: Session = Depends(get_db)):
     return CostSheetRead(
         id=s.id, part_id=s.part_id, scenario_name=s.scenario_name,
         scenario_group=s.scenario_group, status=s.status,
-        quoted_price=s.quoted_price, overhead_profile_id=s.overhead_profile_id,
+        quoted_price=s.quoted_price, supplier_name=s.supplier_name,
+        overhead_profile_id=s.overhead_profile_id,
         result_summary=s.result_summary, calculated_at=s.calculated_at,
         created_at=s.created_at, updated_at=s.updated_at,
         part_name=part.name, part_no=part.part_no,
@@ -94,7 +97,8 @@ def update_cost_sheet(id: int, data: CostSheetUpdate, db: Session = Depends(get_
     return CostSheetRead(
         id=s.id, part_id=s.part_id, scenario_name=s.scenario_name,
         scenario_group=s.scenario_group, status=s.status,
-        quoted_price=s.quoted_price, overhead_profile_id=s.overhead_profile_id,
+        quoted_price=s.quoted_price, supplier_name=s.supplier_name,
+        overhead_profile_id=s.overhead_profile_id,
         result_summary=s.result_summary, calculated_at=s.calculated_at,
         created_at=s.created_at, updated_at=s.updated_at,
         part_name=part.name if part else None, part_no=part.part_no if part else None,
@@ -247,7 +251,8 @@ def calculate_cost_sheet(
     return CostSheetDetail(
         id=s.id, part_id=s.part_id, scenario_name=s.scenario_name,
         scenario_group=s.scenario_group, status=s.status,
-        quoted_price=s.quoted_price, overhead_profile_id=s.overhead_profile_id,
+        quoted_price=s.quoted_price, supplier_name=s.supplier_name,
+        overhead_profile_id=s.overhead_profile_id,
         result_summary=s.result_summary, calculated_at=s.calculated_at,
         created_at=s.created_at, updated_at=s.updated_at,
         part_name=part.name, part_no=part.part_no,

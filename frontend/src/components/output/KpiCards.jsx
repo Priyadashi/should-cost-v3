@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 
-export default function KpiCards({ summary, currency = 'INR' }) {
+export default function KpiCards({ summary, supplierName, currency = 'INR' }) {
   if (!summary) return null
 
   const cards = [
     { label: 'Should Cost', value: `₹${summary.should_cost?.toFixed(2)}`, sub: 'Per unit', color: 'brand' },
-    { label: 'Quoted Price', value: `₹${summary.current_price?.toFixed(2)}`, sub: 'Supplier quote', color: 'surface' },
+    { label: 'Quoted Price', value: `₹${summary.current_price?.toFixed(2)}`, sub: supplierName || 'Supplier quote', color: 'surface' },
     {
       label: 'Gap',
       value: `${summary.gap > 0 ? '+' : ''}₹${summary.gap?.toFixed(2)}`,

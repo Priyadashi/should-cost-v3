@@ -1,6 +1,15 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
-const COLORS = ['#f59e0b', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b']
+const COLORS = [
+  '#475569', // Material: Slate 600
+  '#2563eb', // Conversion: Blue 600
+  '#0284c7', // Labor: Light Blue 600
+  '#059669', // Overhead: Emerald 600
+  '#8b5cf6', // Tooling: Violet 500
+  '#d97706', // SGA: Amber 600
+  '#0f766e', // Profit: Teal 700
+  '#be123c', // Logistics: Rose 700
+]
 
 export default function CostSplitDonut({ summary }) {
   if (!summary) return null

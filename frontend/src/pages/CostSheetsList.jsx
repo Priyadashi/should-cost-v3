@@ -34,20 +34,42 @@ export default function CostSheetsList() {
       header: 'Should Cost',
       accessor: 'should_cost',
       render: (r) => {
-        const cost = r.result_summary?.total_cost ?? r.should_cost
+        const cost = r.result_summary?.should_cost ?? r.should_cost
         return cost != null ? <CurrencyDisplay value={cost} className="font-semibold text-brand-700" /> : '\u2014'
+      },
+    },
+    {
+      header: 'Quoted / Supplier',
+      accessor: 'quoted_price',
+      render: (r) => {
+        const quoted = r.quoted_price
+        const supplier = r.supplier_name
+        if (!quoted && !supplier) return '\u2014'
+        return (
+          <div className="leading-tight">
+            {quoted != null && (
+              <div className="font-mono font-semibold text-surface-700 text-sm">
+                ₹{quoted.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            )}
+            {supplier && (
+              <div className="text-[11px] text-surface-400 truncate max-w-[120px]">{supplier}</div>
+            )}
+          </div>
+        )
       },
     },
     {
       header: 'Gap %',
       accessor: 'gap_pct',
       render: (r) => {
-        const gap = r.result_summary?.gap_pct ?? r.gap_pct
+        let gap = r.result_summary?.gap_pct ?? r.gap_pct
         if (gap == null) return '\u2014'
+        if (Math.abs(gap) < 1 && gap !== 0) gap = gap * 100
         const isNeg = gap < 0
         return (
           <span className={`font-mono font-semibold ${isNeg ? 'text-emerald-600' : 'text-red-600'}`}>
-            {isNeg ? '' : '+'}{(gap * 100).toFixed(1)}%
+            {isNeg ? '' : '+'}{gap.toFixed(1)}%
           </span>
         )
       },

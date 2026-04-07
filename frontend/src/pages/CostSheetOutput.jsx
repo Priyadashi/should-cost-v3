@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useCostSheet } from '../hooks/useApi'
+import { useCostSheet, useUpdateCostSheet, useCalculateCostSheet } from '../hooks/useApi'
 import KpiCards from '../components/output/KpiCards'
 import WaterfallChart from '../components/output/WaterfallChart'
 import CostSplitDonut from '../components/output/CostSplitDonut'
@@ -8,7 +8,7 @@ import LineItemTable from '../components/output/LineItemTable'
 import TornadoChart from '../components/output/TornadoChart'
 import VolumePriceCurve from '../components/output/VolumePriceCurve'
 import RecommendationsPanel from '../components/output/RecommendationsPanel'
-import { ArrowLeft, Download, RefreshCw, GitCompare, Sparkles } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw, GitCompare, Sparkles, Edit3 } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS = [
@@ -22,7 +22,33 @@ export default function CostSheetOutput() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: sheet, isLoading } = useCostSheet(id)
+  const updateMut = useUpdateCostSheet()
+  const calculateMut = useCalculateCostSheet()
   const [activeTab, setActiveTab] = useState('summary')
+
+  const handleEditQuote = async () => {
+    if (!sheet) return
+    const currentQuote = sheet.quoted_price || summary?.current_price || ''
+    const newQuoteStr = prompt('Enter new quoted price (₹):', currentQuote)
+    if (newQuoteStr === null || newQuoteStr.trim() === '') return
+    const newQuote = parseFloat(newQuoteStr)
+    if (isNaN(newQuote)) return alert('Invalid price')
+
+    const newSupplier = prompt('Supplier name (leave blank to keep current):', sheet.supplier_name || '')
+
+    try {
+      await updateMut.mutateAsync({
+        id,
+        data: {
+          quoted_price: newQuote,
+          ...(newSupplier !== null ? { supplier_name: newSupplier || null } : {}),
+        },
+      })
+      await calculateMut.mutateAsync({ id, data: {} })
+    } catch (err) {
+      alert('Failed to update quote')
+    }
+  }
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64 text-sm text-surface-400">Loading cost sheet...</div>
@@ -50,8 +76,27 @@ export default function CostSheetOutput() {
             <h2 className="text-lg font-semibold text-surface-800">{sheet.scenario_name}</h2>
             <p className="text-xs text-surface-400">{sheet.part_name} ({sheet.part_no})</p>
           </div>
+          {/* Quoted price + Supplier pill */}
+          {(sheet.quoted_price || sheet.supplier_name) && (
+            <div className="flex items-center gap-1.5 rounded-lg bg-surface-50 border border-surface-200 px-3 py-1.5">
+              {sheet.quoted_price && (
+                <span className="font-mono text-sm font-semibold text-surface-700">
+                  ₹{sheet.quoted_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              )}
+              {sheet.quoted_price && sheet.supplier_name && (
+                <span className="text-surface-300">·</span>
+              )}
+              {sheet.supplier_name && (
+                <span className="text-xs text-surface-500">{sheet.supplier_name}</span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={handleEditQuote} className="flex items-center gap-1.5 rounded-lg border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-500 hover:bg-surface-50">
+            <Edit3 size={14} /> Update Quote
+          </button>
           <button className="flex items-center gap-1.5 rounded-lg border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-500 hover:bg-surface-50">
             <Download size={14} /> Export Excel
           </button>
@@ -62,7 +107,7 @@ export default function CostSheetOutput() {
       </div>
 
       {/* KPI Cards */}
-      <KpiCards summary={summary} />
+      <KpiCards summary={summary} supplierName={sheet.supplier_name} />
 
       {/* Tabs */}
       <div className="flex border-b border-surface-200">

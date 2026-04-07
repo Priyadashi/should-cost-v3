@@ -11,7 +11,10 @@ class ProcessTemplateBase(BaseModel):
     default_machine_id: Optional[int] = None
     default_cycle_time_min: Optional[float] = None
     default_setup_time_min: Optional[float] = None
+    default_batch_size: Optional[int] = 100
+    default_operators: Optional[int] = 1
     default_labor_rate_per_hr: Optional[float] = None
+    default_tooling_cost_per_unit: Optional[float] = 0
     description: Optional[str] = None
 
 
@@ -27,7 +30,10 @@ class ProcessTemplateUpdate(BaseModel):
     default_machine_id: Optional[int] = None
     default_cycle_time_min: Optional[float] = None
     default_setup_time_min: Optional[float] = None
+    default_batch_size: Optional[int] = None
+    default_operators: Optional[int] = None
     default_labor_rate_per_hr: Optional[float] = None
+    default_tooling_cost_per_unit: Optional[float] = None
     description: Optional[str] = None
 
 

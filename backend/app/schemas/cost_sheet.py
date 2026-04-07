@@ -8,6 +8,7 @@ class CostSheetBase(BaseModel):
     scenario_name: str = "Base Scenario"
     scenario_group: Optional[str] = None
     quoted_price: Optional[float] = None
+    supplier_name: Optional[str] = None
     overhead_profile_id: Optional[int] = None
 
 
@@ -20,6 +21,7 @@ class CostSheetUpdate(BaseModel):
     scenario_group: Optional[str] = None
     status: Optional[str] = None
     quoted_price: Optional[float] = None
+    supplier_name: Optional[str] = None
     overhead_profile_id: Optional[int] = None
 
 

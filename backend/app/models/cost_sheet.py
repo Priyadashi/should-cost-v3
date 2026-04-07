@@ -12,6 +12,7 @@ class CostSheet(Base):
     scenario_group = Column(String(200), nullable=True)
     status = Column(String(50), nullable=False, default="draft")
     quoted_price = Column(Float, nullable=True)
+    supplier_name = Column(String(200), nullable=True)
     overhead_profile_id = Column(Integer, ForeignKey("overhead_profiles.id"), nullable=True)
 
     # JSON fields for flexible storage
