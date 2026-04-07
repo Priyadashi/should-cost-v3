@@ -28,6 +28,7 @@ app = FastAPI(
     version="1.0.0",
     description="Manufacturing should-cost analysis platform",
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 app.add_middleware(
