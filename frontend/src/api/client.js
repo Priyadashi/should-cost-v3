@@ -5,6 +5,17 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+// Ensure trailing slashes to avoid 307 redirects that strip CORS headers
+api.interceptors.request.use((config) => {
+  if (config.url) {
+    const [path, query] = config.url.split('?')
+    if (!path.endsWith('/')) {
+      config.url = path + '/' + (query ? '?' + query : '')
+    }
+  }
+  return config
+})
+
 api.interceptors.response.use(
   (res) => res.data,
   (err) => {
